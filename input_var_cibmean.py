@@ -1,4 +1,5 @@
 from headers_constants import *
+from unit_conversions import factinterp
 
 
 class data_var_iv(object):
@@ -7,19 +8,17 @@ class data_var_iv(object):
         # ############### cib data #########################
         self.exp = exp
         self.name = self.exp['name']
-        # self.gal_exp = self.exp['name_gal']
 
         self.z_c = 1.5
 
         # self.cc_cibmean = self.exp['cc_cibmean']
-        self.nu0min = self.exp['nu0min']
-        self.nu0max = self.exp['nu0max']
-        self.nucen = self.exp['nucen']
+        # self.nu0min = self.exp['nu0min']
+        # self.nu0max = self.exp['nu0max']
+        # self.nucen = self.exp['nucen']
         self.nu0 = self.exp['nu0']
         self.ell = self.exp['ell']
-
-        # self.mass = mass
-        # self.z = z
+        self.fwhm = self.exp['fwhm']
+        self.sensitivity = self.exp['sensitivity']
 
         self.cc = self.exp['cc']
         self.fc = self.exp['fc']
@@ -87,11 +86,6 @@ class data_var_iv(object):
         # """
         self.unfiltered_snu = RectBivariateSpline(freq, redshifts,
                                                   snu_unfiltered)
-        # snuinterp = interp1d(redshifts, snu_eff, kind='linear',
-        #                      bounds_error=False, fill_value=0.)
-        # snuinterp = interp1d(redshifts, snu_eff, kind='linear',
-        #                      bounds_error=False, fill_value="extrapolate")
-        # self.snu = snuinterp(z)
 
         # ############## Planck filter at x GHz ####################
         freqar = ['100', '143', '217', '353', '545', '857']
@@ -131,10 +125,14 @@ class data_var_iv(object):
         # ######### CIB halo model parameters ###################
         cibparresaddr = self.exp['cibpar_resfile']
         self.Meffmax, self.etamax, self.sigmaMh, self.tau = np.loadtxt(cibparresaddr)[:4, 0]
+        self.shotpl = np.loadtxt(cibparresaddr)[4:8, 0]  # 217, 353, 545, 857
+        # assuming 10 times lower shot noise for CCAT Prime
+        if self.name == 'CCAT':
+            # nupl = np.array([217., 353., 545., 857.])
+            # shotpl = np.loadtxt(cibparresaddr)[4:8, 0]
+            # self.shotpl = np.interp(self.nu0, nupl, shotpl)/10.
+            self.shotpl = np.loadtxt(cibparresaddr)[4:8, 0]  # /10.
         # self.Meffmax, self.etamax, self.sigmaMh, self.tau = 8753289339381.791, 0.4028353504978569, 1.807080723258688, 1.2040244128818796
-
-        # if name == 'Planck_only':
-            # self.fc[-4:] = np.loadtxt(cibparresaddr)[-4:, 0]
 
     def L_IR(self, snu_eff, freq_rest, redshifts):
         # freq_rest *= ghz  # GHz to Hz
@@ -151,3 +149,31 @@ class data_var_iv(object):
             dfeq = 10**(fint)
             L_IR_eff[i] = np.trapz(Lint, dfeq)
         return L_IR_eff
+
+    def whitenoise(self, n_nu):
+        # fwhm in arcmins => convert it to radians
+        # sensitivity in Jy/rad for Planck => then okay
+        # for CCAT: sensitivity in muK-arcmin => convert it to Jy/sr using
+        # unit_conversion.py
+        # currently frequency dependent sensitivity only for CCAT, should
+        # implement it for Planck as well.
+        # print ("fwhm, ", self.fwhm)
+        fwhm = self.fwhm[n_nu]
+        fwhm *= (np.pi/180.)/60.
+        sigma_beam = fwhm / np.sqrt(8.*np.log(2.))
+        a = self.ell*(self.ell+1)*sigma_beam**2
+        b = self.sensitivity[n_nu]**2  # Jy^2/sr
+        res = b*np.exp(a)
+        """
+        Due to white noise increasing exponentially, it is sometimes too high,
+        so we get nan for snr as a result. So we put a upper limt on the white
+        noise of 1.e10 i.e. a very big number
+        """
+        for i in range(len(self.ell)):
+            if res[i] > 1.e10:
+                res[i] = 1.e10  # a very big number
+        # print (self.ell)
+        # print (res)
+        # print (fwhm)
+        # print (sigma_beam)
+        return res

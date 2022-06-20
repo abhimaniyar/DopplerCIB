@@ -145,6 +145,8 @@ class I_nu_cib(object):
         # result = self.cc_cibmean*self.freq_Iv*intg.simps(intgral2, x=self.z,
         #                                                  axis=-1, even='avg')
         result = intg.simps(intgral2, x=self.z, axis=-1, even='avg')
+        # print ("z: ", self.z)
+        # print ("Inu: ", result)
         Ivint = interp1d(self.nu0, result, kind='linear', bounds_error=False,
                          fill_value="extrapolate")
         # result *= ghz*nW/w_jy  # nWm^2/sr
@@ -177,7 +179,199 @@ class I_nu_cib(object):
             res = num/denom
         else:
             # print ("here")
-            a = np.gradient(np.log(self.Iv()(self.nu0)), np.log(self.nu0))
+            a = np.gradient(np.log(self.Iv()(self.nu0)), np.log(self.nu0), edge_order=2)
             # res *= self.nu0/self.Iv()(self.nu0)
             res = interp1d(self.nu0, a, kind='linear', bounds_error=False, fill_value="extrapolate")
         return res
+
+    def delta_Inu(self, z):
+        Inu = self.Iv()
+        alpha = self.alpha()
+
+        beta2 = self.uni.beta2(self.z)
+        beta = np.sqrt(beta2)
+        fbeta = interp1d(self.z, beta, kind='linear', bounds_error=False, fill_value="extrapolate")
+        betaz = fbeta(z)
+
+        deltaInu = (3.-alpha(self.nu0))*Inu(self.nu0)
+        deltaInu *= betaz
+        deltaInuint = interp1d(self.nu0, deltaInu, kind='linear',
+                               bounds_error=False, fill_value="extrapolate")
+        return deltaInuint
+
+    def Tdust(self, z):
+        T0 = 24.4  # Planck CIB 2013 paper
+        alpha = 0.36
+        result = T0*(1.+z)**alpha
+        return result
+
+
+    def B_nu(self, nu, z):
+        Td = self.Tdust(z)
+        res = 2.*h_p*nu**3/(c_light*1.e3)**2
+        x = h_p*nu/k_B/Td
+        # print (min(x), max(x))
+        res /= (np.exp(x) - 1)
+        return res
+    
+    
+    def mod_blackbody(self, nu, z):
+        beta = 1.75
+        Bnu = self.B_nu(nu, z)
+        result = Bnu
+        result *= nu**beta
+        # result *= w_jy  # Watt to Jy
+        return result
+    
+    
+    def nu0_z(self, z):
+        """
+        for mod blackboy approximation, for the SED we have
+        dlntheta/dlnnu = -gamma for nu=nu0.
+        Here theta is the modified blackbody spectrum. In order to find nu0
+        which isredshift dependent, we need to take a derivative and solve
+        for this numerically. In the end it comes out in the form
+        (x-(3+beta+gamma))e(x-(3+beta+gamma)) = -(3+beta+gamma)e(-(3+beta+gamma))
+        The solution is x-(3+beta+gamma) = W(-(3+beta+gamma)e(-(3+beta+gamma)))
+        here W is Lambert's W fnction which is implemented in scipy.
+        x = hnu/KT
+        """
+        beta = 1.75
+        gamma = 1.7
+        y = -(3+beta+gamma)*np.exp(-(3+beta+gamma))
+        xx = lambertw(y)
+        x = np.real(xx + (3+beta+gamma))
+        Td = self.Tdust(z)
+        nu0z = x*k_B*Td/h_p
+        return nu0z
+    
+    
+    def Theta(self, nu, z):
+        # calculating only for nu < nu0
+        # normalised SED such that theta(nu0) = 1
+        num = self.mod_blackbody(nu, z)
+        # nu0 = 2000*1.e9  # Hz => approximately taken from Fig.1 of 2010.16405
+        nu0z = self.nu0_z(z)
+        denom = self.mod_blackbody(nu0z, z)
+        return num/denom
+    
+    
+    def alpha_modblackbod(self, nu, z):
+        # gamma = 1.7
+        # nu_0 = 1000.
+        Inu = self.mod_blackbody(nu, z)
+        grad = np.gradient(np.log(Inu), np.log(nu), edge_order=2)
+        alpha = grad  # *nu/Inu
+        # alpha = np.where(nu < nu_0, alpha, -gamma)
+        return alpha
+    
+    
+    def alpha_modblackbod_Theta(self, nu, z):
+        # gamma = 1.7
+        # nu_0 = 1000.
+        Inu = self.Theta(nu, z)
+        grad = np.gradient(np.log(Inu), np.log(nu), edge_order=2)
+        alpha = grad  # *nu/Inu
+        # alpha = np.where(nu < nu_0, alpha, -gamma)
+        return alpha
+
+    def phiz(self, z):
+        delta = 3.6
+        return (1+z)**delta
+
+    def sigmaM(self, m):
+        log10Meff = 12.6
+        # Mmin = 1e8  # randomly chosen
+        sigmaLM2 = 0.5
+
+        exp_coef = (np.log10(m) - log10Meff)**2/(2*sigmaLM2)
+        norm = m/np.sqrt(2*np.pi*sigmaLM2)
+        sigmam = norm*np.exp(-1.*exp_coef)
+        return sigmam
+
+    def LMrel(self, nu, m, z):
+        # nu *= 1.e9  # frequency in Hz not GHz
+        # best fit values of parameyers taken from 2010.16405
+        L0 = 6.4e-8  # JyMpc^2/M_sun/Hz
+
+        phi_z = self.phiz(z)
+        # print ("phi(z) = %s" % (phi_z))
+        sigmaM = self.sigmaM(m)
+        # print ("sigmaM = %s" % (sigmaM))
+        Theta = self.Theta(nu, z)
+        # print ("Theta = %s" % (Theta))
+        res = L0*phi_z*sigmaM*Theta
+        # print ("L = %s" % (res))
+        return res
+
+    def jnu_modblack(self):
+        # dn_dm = self.hmfmz/(self.mh*np.log(10))
+        nz = len(self.z)
+        Lnu = np.zeros((len(self.nu0), len(self.mh), nz))
+        for iz in range(nz):
+            for iv in range(len(self.nu0)):
+                nurest = self.nu0[iv]*(1+self.z[iz])*1.e9
+                Lnu[iv, :, iz] = self.LMrel(nurest, self.mh, self.z[iz])
+                # print ("Lnu=", Lnu[iv, :, iz])
+        integrand = Lnu*self.hmfmz/(4.*np.pi)
+        res = intg.simps(integrand, x=np.log10(self.mh), axis=1, even='avg')
+        # print (res[0, :])
+        # print ("Jnu modblack at 100 GHz = %s" % (res[0, :]))
+        return res
+        
+    def Iv_modblack(self):
+        jnu = self.jnu_modblack()
+        dchi_dz = self.uni.dchi_dz(self.z)
+        intgral2 = dchi_dz*jnu/(1+self.z)
+        # result = self.cc_cibmean*self.freq_Iv*intg.simps(intgral2, x=self.z,
+        #                                                  axis=-1, even='avg')
+        result = intg.simps(intgral2, x=self.z, axis=-1, even='avg')
+        # print (result)
+        # print ("I_nu all gal mod blackbod (Jy) = %s" % (result))
+        # print (np.log(result))
+        Ivint = interp1d(self.nu0, result, kind='linear', bounds_error=False,
+                         fill_value="extrapolate")
+        return Ivint
+
+    def alpha_modblackbod_inu(self):
+        a = np.gradient(np.log(self.Iv_modblack()(self.nu0)), np.log(self.nu0), edge_order=2)
+        # print (self.Iv_modblack()(self.nu0))
+        # print (a)
+        # res *= self.nu0/self.Iv()(self.nu0)
+        res = interp1d(self.nu0, a, kind='linear', bounds_error=False, fill_value="extrapolate")
+        return res
+
+    def Iv_deltaIv_modblack_singlegal(self, thetagal, nu, m, z):
+        # nu has to be in Hz and not GHz
+        # solid angle = A/chi^2=pi*(chi*theta)**2/chi**2=pi*theta**2
+        thetagal /= 60.  # in degrees
+        thetagal *= np.pi/180.  # radians
+        Omega = np.pi*thetagal**2
+
+        nurest = nu*(1+z)  # rest frame freq
+        Lnurest = self.LMrel(nurest, m, z)
+        chi = self.uni.chi(z)
+        flux = Lnurest/(4*np.pi*chi**2*(1+z))
+        # print ("flux for single gal at 100 GHz = %s" % (flux))
+        Inu = flux/Omega
+        # Inu2 = self.Iv_modblack()
+        # print ("I_nu single gal (Jy) = %s" % (Inu))
+        if self.dv.name == 'Planck_only':
+            alpha_cib = self.alpha()
+        else:
+            # alpha_cib = self.alpha()(self.nu0)
+            # print ("alpha Mat = %s" % (alpha_cib))
+            alpha_cib = self.alpha_modblackbod_inu()(nu/1.e9)  # nu in GHz
+            # print ("alpha mod blackbod = %s" % (alpha_cib))
+        # print ("alpha_{CIB}: %s" % (alpha_cib))
+        # print ("alpha = %s" % (alpha_cib))
+        beta2 = self.uni.beta2(self.z)
+        beta = np.sqrt(beta2)
+        fbeta = interp1d(self.z, beta, kind='linear', bounds_error=False, fill_value="extrapolate")
+        betaz = fbeta(z)
+        # print ("beta = %s" % (betaz))
+
+        res = (3.-alpha_cib)*Inu
+        res *= betaz
+
+        return Inu, res

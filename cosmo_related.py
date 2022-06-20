@@ -154,3 +154,20 @@ class cosmo_var_iv(object):
         res = intg.simps(integrand, x=self.k, axis=0, even='avg')
         res *= fact
         return res
+
+    def plot_beta2(self):
+        z = self.z
+        beta2 = self.beta2(z)
+        fig = plt.figure(figsize=(10.5, 7))
+        ax = fig.add_subplot(111)
+        ax.plot(z, beta2, c='k', ls='-')
+        # ax.plot([], [], c='k', ls='--', label="Modified blackbody")
+        # ax.legend(fontsize='18', loc='lower left', frameon=False)  # , labelspacing=0.1)
+        # ax.set_xscale('log')
+        ax.set_yscale('log', nonposy='mask')
+        ax.set_xlabel(r'$z$', fontsize=24)
+        ax.set_ylabel(r'$\left<\beta^2\right>$', fontsize=24)
+        # ax.set_ylim((1.0))  # , 4.e-6))
+        # ax.set_xlim((50.))  # , 4.e3))
+        ax.tick_params(axis='both', which='both', labelsize=20)
+        plt.show()

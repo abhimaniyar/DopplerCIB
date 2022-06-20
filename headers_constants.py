@@ -12,6 +12,9 @@ import hmf_unfw_bias
 from scipy.interpolate import UnivariateSpline, interp1d, interp2d, RectBivariateSpline, RegularGridInterpolator
 from scipy import special
 import matplotlib.pyplot as plt
+from scipy.special import lambertw
+# from pathos.multiprocessing import ProcessingPool as Pool
+
 
 KC = 1.0e-10  # Kennicutt constant for Chabrier IMF
 fsub = 0.134
