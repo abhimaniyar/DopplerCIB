@@ -18,7 +18,7 @@ class Cib_halo:
         self.ell = self.dv.ell
         self.snu_unfilt = self.dv.unfiltered_snu(self.nu0, self.z)
         self.snu_filt = self.dv.snufilt(self.z)
-        self.snu = self.snu_unfilt
+        self.snu = self.snu_filt  # self.snu_unfilt  self.snu_filt
         # print (self.snu_unfilt[4, 10:13])
         self.cosmo = cosmo
         # self.deltah = deltah

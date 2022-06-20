@@ -37,7 +37,8 @@ class data_var_iv(object):
         power spectra, use corresponding files in the data folder.
         """
         redshifts = hdulist[1].data
-        snu_eff = hdulist[0].data  # in Jy/Lsun
+        snu_eff = hdulist[0].data[:-1, :]  # in Jy/Lsun  # -1 because we are
+        # not considering the 3000 GHz channel which comes from IRAS
         hdulist.close()
 
         self.snufilt = interp1d(redshifts, snu_eff, kind='linear',
