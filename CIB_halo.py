@@ -19,7 +19,9 @@ class Cib_halo:
         self.snu_unfilt = self.dv.unfiltered_snu(self.nu0, self.z)
         self.snu_filt = self.dv.snufilt(self.z)
         self.snu = self.snu_filt  # self.snu_unfilt  self.snu_filt
-        # print (self.snu_unfilt[4, 10:13])
+        # if you want to use unfiltered SEDs, use snu_unfilt. snu_filt is for
+        # Planck HFI frequency channels.
+
         self.cosmo = cosmo
         # self.deltah = deltah
         self.Meffmax = self.dv.Meffmax
