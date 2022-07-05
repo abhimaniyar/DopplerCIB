@@ -64,7 +64,7 @@ class ProfHODMore15:
         if self.gal_exp == 'CMASS':
             # """
             # this is CMASS data
-            data = np.loadtxt("data/dn_dz_cmass.txt")
+            data = np.loadtxt("data_files/dn_dz_cmass.txt")
             Z = data[:, 0]
             Dndz = data[:, 1]
         elif self.gal_exp == 'DESI_ELG' or self.gal_exp == 'DESI_LRG':
@@ -81,7 +81,7 @@ class ProfHODMore15:
             # in this case. and ngal is calculated as in number 1 step.
             # data = np.loadtxt("data/dndz_DESI_ELG.txt")
             # data = np.loadtxt("data/dndz_DESI_LRG.txt")
-            data = np.loadtxt('data/dndz_'+self.gal_exp+'.txt')
+            data = np.loadtxt('data_files/dndz_'+self.gal_exp+'.txt')
             Z1, Z2 = data[:, 0], data[:, 1]
             Z = (Z1+Z2)/2.
             deltaz = Z2 - Z1
@@ -89,7 +89,7 @@ class ProfHODMore15:
             ngal = data[:, 2]/(np.pi/180.)**2
             Dndz = ngal/deltaz
         else:
-            data = np.loadtxt('data/dndz_DESI_ELG.txt')
+            data = np.loadtxt('data_files/dndz_DESI_ELG.txt')
             Z1, Z2 = data[:, 0], data[:, 1]
             Z = Z1+Z2
             deltaz = 2*(Z2 - Z1)
