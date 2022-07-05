@@ -77,7 +77,7 @@ strfig = "allcomponents_lognormal_sigevol_1p5zcutoff_nolens_onlyautoshotpar_no30
 # strfig = "allcomponents_lognormal_sigevol_1p5zcutoff_nospire_fcpl_onlyautoshotpar_no3000_gaussian600n857n1200_planck_spire_hmflog10.txt"
 
 cibres = "data_files/one_halo_bestfit_"+strfig
-# clres = np.loadtxt('data/%s.txt' % (string))
+# clres = np.loadtxt('data_files/%s.txt' % (string))
 
 
 custom = {'name': cib_exp,
@@ -99,13 +99,13 @@ exp = custom
 redshifts = np.loadtxt('data_files/redshifts.txt')
 
 if gal_exp == 'CMASS':
-    reds = np.loadtxt('data/cmass_redshift.txt')
+    reds = np.loadtxt('data_files/cmass_redshift.txt')
 elif gal_exp == 'DESI_ELG' or gal_exp == 'DESI_LRG':
-    data = np.loadtxt('data/dndz_'+gal_exp+'.txt')
+    data = np.loadtxt('data_files/dndz_'+gal_exp+'.txt')
     Z1, Z2 = data[:, 0], data[:, 1]
     reds = (Z1+Z2)/2.
 else:
-    data = np.loadtxt('data/dndz_DESI_ELG.txt')
+    data = np.loadtxt('data_files/dndz_DESI_ELG.txt')
     Z1, Z2 = data[:, 0], data[:, 1]
     reds = (Z1+Z2)/2.
     reds *= 2.  # just as a test to see if we expand the redshift
