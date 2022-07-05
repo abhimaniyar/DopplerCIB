@@ -79,8 +79,8 @@ class ProfHODMore15:
             # 2. dN/dz which is number of galaxies per redshift per steradian. So
             # dN/dz = ngal/\Delta z where \Delta z is redshift bin width i.e. 0.1
             # in this case. and ngal is calculated as in number 1 step.
-            # data = np.loadtxt("data/dndz_DESI_ELG.txt")
-            # data = np.loadtxt("data/dndz_DESI_LRG.txt")
+            # data = np.loadtxt("data_files/dndz_DESI_ELG.txt")
+            # data = np.loadtxt("data_files/dndz_DESI_LRG.txt")
             data = np.loadtxt('data_files/dndz_'+self.gal_exp+'.txt')
             Z1, Z2 = data[:, 0], data[:, 1]
             Z = (Z1+Z2)/2.
@@ -255,24 +255,24 @@ class ProfHODMore15:
         if self.gal_exp == 'CMASS':
             # """
             # this is CMASS data
-            data = np.loadtxt("data/dn_dz_cmass.txt")
+            data = np.loadtxt("data_files/dn_dz_cmass.txt")
             Z = data[:, 0]
             Dndz = data[:, 1]
             ngaltot = intg.simps(Dndz, x=Z, even='avg')
         elif self.gal_exp == 'DESI_ELG' or self.gal_exp == 'DESI_LRG':
-            data = np.loadtxt('data/dndz_'+self.gal_exp+'.txt')
+            data = np.loadtxt('data_files/dndz_'+self.gal_exp+'.txt')
             # converting from per squre degrees to per steradian
             ngal = data[:, 2]/(np.pi/180.)**2
             ngaltot = np.sum(ngal)
         else:
-            data = np.loadtxt('data/dndz_DESI_ELG.txt')
+            data = np.loadtxt('data_files/dndz_DESI_ELG.txt')
             # converting from per squre degrees to per steradian
             ngal = data[:, 2]/(np.pi/180.)**2
             ngaltot = np.sum(ngal)
             # ngaltot *= 10
             """
-            # data = np.loadtxt("data/dndz_DESI_ELG.txt")
-            data = np.loadtxt("data/dndz_DESI_LRG.txt")
+            # data = np.loadtxt("data_files/dndz_DESI_ELG.txt")
+            data = np.loadtxt("data_files/dndz_DESI_LRG.txt")
             # add all the ngal contributions coming from different redshifts
             # and then take its inverse to get the shot noise in angular power
             # spectrum i.e. C_l^{SN} = 1./ngal where ngal is the angular number
@@ -338,14 +338,14 @@ class ProfHODMore15:
         if self.gal_exp == 'CMASS':
             # """
             # this is CMASS data
-            data = np.loadtxt("data/dn_dz_cmass.txt")
+            data = np.loadtxt("data_files/dn_dz_cmass.txt")
             Z = data[:, 0]
             Dndz = data[:, 1]
             beta2 = self.uni.beta2(Z)
             res = Dndz*beta2
             ngaltot = intg.simps(res, x=Z, even='avg')
         else:
-            data = np.loadtxt('data/dndz_'+self.gal_exp+'.txt')
+            data = np.loadtxt('data_files/dndz_'+self.gal_exp+'.txt')
             # converting from per squre degrees to per steradian
             ngal = data[:, 2]/(np.pi/180.)**2
             Z = (data[:, 0]+data[:, 1])/2.
@@ -353,8 +353,7 @@ class ProfHODMore15:
             res = ngal*beta2
             ngaltot = np.sum(res)
             """
-            # data = np.loadtxt("data/dndz_DESI_ELG.txt")
-            data = np.loadtxt("data/dndz_DESI_LRG.txt")
+            # data = np.loadtxt("data_files/dndz_DESI_ELG.txt")
             # add all the ngal contributions coming from different redshifts
             # and then take its inverse to get the shot noise in angular power
             # spectrum i.e. C_l^{SN} = 1./ngal where ngal is the angular number
