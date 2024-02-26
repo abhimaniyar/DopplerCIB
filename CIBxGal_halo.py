@@ -33,6 +33,7 @@ class CIBxgal(ProfHODMore15, Cib_halo):
 
     def cibterm(self, unfw):
         snu_eff = self.snu
+        # print ("Snu shape: ", snu_eff.shape)
         # unfw = self.unfw
         nfreq = len(snu_eff[:, 0])
         djcentral = self.djc_dlnMh()  #snu_eff)
@@ -122,7 +123,7 @@ class CIBxgal(ProfHODMore15, Cib_halo):
         sar = self.dv.shotpl
         # """
         freq = np.array([100., 143., 217., 353., 545., 857.])
-        sa = np.array([3., 7., 14., 357., 2349., 7407.])
+        sa = np.array([1.3*0.116689509208305475, 1.3*0.8714424869942087, 14., 357., 2349., 7407.])
         sa[2:] = sar
         res = interp1d(freq, sa, kind='linear', bounds_error=False, fill_value="extrapolate")
         shotval = res(self.nu0)
@@ -148,7 +149,7 @@ class CIBxgal(ProfHODMore15, Cib_halo):
         twoh = self.cibgalcross_cell_2h()  # snu_eff, ucen, unfw, pk)
         shot = self.cibgalcross_cell_shot()
         # print ("CIB x gal")
-        # print (oneh[5, -2:], twoh[4, -2:], shot[4, -1:])
+        # print (oneh.shape, twoh.shape, shot.shape)
         tot = oneh+twoh+shot
         return tot
 
@@ -512,3 +513,39 @@ class CIBxgal(ProfHODMore15, Cib_halo):
         snr2 = np.cumsum(num/denom)
         snrbin = np.sqrt(snr2)
         return snr, snrbin
+
+
+    def phi_lens(self):
+        z_ls = 1100
+        h0_c = (self.cosmo.H0/c_light).value
+        lens_dist = ((1/self.cosmo.comoving_distance(self.z).value) -
+                     (1/self.cosmo.comoving_distance(z_ls)).value)
+        return 3*self.cosmo.Om0*h0_c**2*lens_dist
+
+    def J_nu_lens(self):  # , Meffmax, etamax, sigmaMh, alpha):
+        Jnu = np.zeros((self.nfreq, len(self.z), len(self.l_lens)))
+        dj_cen, dj_sub = self.dj2()  # (Meffmax, etamax, sigmaMh, alpha)
+        u = self.u_lens
+        dm = np.log10(self.mh[1] / self.mh[0])
+        for i in range(len(self.l_lens)):
+            rest1 = (dj_cen + dj_sub*u[:, i, :])*self.biasmz
+            intg_mh = intg.simps(rest1, dx=dm, axis=1, even='avg')
+            Jnu[:, :, i] = intg_mh
+        return Jnu
+
+    def cibxphi(self):  # , Meffmax, etamax, sigmaMh, alpha):
+        # to be noted: we haven't included the term (D_c/a) in both definition
+        # of phi_lens and cibxphi. This is because they are inverse of each
+        # other and when we multiply phi_lens term inside the cibxphi def, they
+        # will cancel each other out.
+        jnu = self.J_nu_lens()  # (Meffmax, etamax, sigmaMh, alpha)
+        geo = dchi_dz(self.z, self.cosmo)
+        phi = self.phi_lens()
+        pk_geo = self.Pk_lens*geo*phi  # multiplying by geometric factor here
+        # itself because in the next step we are going to transpose power
+        # spectrum and then we can't multiply dimension (z,ell) with (z,)
+        pkt = np.transpose(pk_geo)  # power dimensions are (ell, z) and
+        # here we need dimensions of (z, ell). o transpose
+        rest1 = jnu*pkt*self.l_lens  # because we want l^3 CIBxphi
+        cib_phi = intg.simps(rest1, x=self.z, axis=1, even='avg')
+        return cib_phi*self.cc[:, None]  # color corr from 100 to 857 GHz

@@ -29,7 +29,7 @@ PLANCK FREQUENCIES TOGETHER IN NEED BE.
 """
 nu0min = 50.  # nucen-deltanu/2.
 nu0max = 3000.  # nucen+deltanu/2.
-steps = 2000  # nu0max-nu0min+1  # nu0max-nu0min+1  # 200
+steps = 20  # 2000 nu0max-nu0min+1  # nu0max-nu0min+1  # 200
 nu0 = np.linspace(nu0min, nu0max, int(steps))  # nuarray  # np.linspace(nu0min, nu0max, int(steps))
 
 cib_exp = 'CCAT'  # CCAT  # Planck
@@ -50,20 +50,6 @@ strfig = "allcomponents_lognormal_sigevol_1p5zcutoff_nolens_onlyautoshotpar_no30
 cibres = "data_files/one_halo_bestfit_"+strfig
 # clres = np.loadtxt('data/%s.txt' % (string))
 
-"""
-Planck = {'name': 'Planck_only',
-          'do_cibmean': 0,
-          'cc': cc_pl,
-          'fc': fc_pl,
-          'snuaddr': 'data_files/filtered_snu_planck.fits',
-          'nu0min': nu0min, 'nu0max': nu0max,
-          'nucen': str(int(nucen)),
-          'nu0': nu0,
-          'ell': ell,
-          'fwhm': fwhm,
-          'sensitivity': sensitivity,
-          'cibpar_resfile': cibres}
-"""
 
 custom = {'name': cib_exp,
           'do_cibmean': 1,
@@ -228,7 +214,7 @@ def plot_alpha_freq_z(exp, mass, zs):
     # ax.set_xscale('log')
     # ax.set_yscale('log', nonposy='mask')
     ax.set_xlabel(r'$\nu_{\rm obs}$ [GHz]', fontsize=24)
-    ax.set_ylabel(r'$\alpha$', fontsize=24)
+    ax.set_ylabel(r'$\alpha_{\nu_0}$', fontsize=24)
     # ax.set_ylim((1.0))  # , 4.e-6))
     ax.set_xlim((50.))  # , 4.e3))
     ax.tick_params(axis='both', labelsize=20)
@@ -314,7 +300,7 @@ def plot_Inu_deltaInu_freq_singlegal(exp, m_d, zs, thetagal):
         cibmean = I_nu_cib(driver, driver_uni)
 
         # I_nu1 = cibmean.Iv()(nuarray)
-        # """
+        """
         pool = Pool(ncpus=4)
 
         def f1(nuarr):

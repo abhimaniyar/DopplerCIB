@@ -11,11 +11,11 @@ class I_nu_cib(object):
         self.mh = self.uni.mass
         self.filt = self.dv.filt
         self.filtgrad = self.dv.filtgrad
-        self.nu0min = self.dv.nu0min
-        self.nu0max = self.dv.nu0max
+        # self.nu0min = self.dv.nu0min
+        # self.nu0max = self.dv.nu0max
         # self.nu0 = np.linspace(self.nu0min, self.nu0max, 200)
         self.nu0 = self.dv.nu0
-        self.nucen = self.dv.nucen
+        # self.nucen = self.dv.nucen
         # self.snu_eff = self.dv.snu
         self.snu_unfilt = self.dv.unfiltered_snu(self.nu0, self.z)
         self.cosmo = cosmo
@@ -97,8 +97,8 @@ class I_nu_cib(object):
         """
         log10msub_min = 5
         if np.log10(mhalo) <= log10msub_min:
-            raise ValueError, "halo mass %d should be greater than subhalo mass \
-%d." % (np.log10(mhalo), log10msub_min)
+            raise ValueError("halo mass %d should be greater than subhalo mass \
+%d." % (np.log10(mhalo), log10msub_min))
         else:
             logmh = np.log10(mhalo)
             logmsub = np.arange(log10msub_min, logmh, 0.1)

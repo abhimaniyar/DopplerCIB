@@ -36,7 +36,7 @@ steps = nu0max-nu0min+1  # nu0max-nu0min+1  # 200
 # cc_pl = np.array([1.076, 1.017, 1.119, 1.097, 1.068, 0.995])  # , 0.960])
 
 cib_exp = 'CCAT'  # CCAT  # Planck
-gal_exp = 'ExtDESI_ELG'  # CMASS  # DESI_ELG  # DESI_LRG  # ExtDESI_ELG
+gal_exp = 'DESI_ELG'  # CMASS  # DESI_ELG  # DESI_LRG  # ExtDESI_ELG
 
 # specs for CCAT-Prime from https://cornell.app.box.com/s/iag34277e8j0eywu8qmc0a8x3z4ko1i3/file/801743165445
 # CCAT-prime Collaboration, J.Low Temp.Phys., 199, 1089 (2020), Table 1.
@@ -72,7 +72,9 @@ if cib_exp == 'CCAT':
     sensitivity_Jy2_sr = np.array([4.2, 11.8, 85.1, 468., 69483.])
     sensitivity_Jy_sr = np.sqrt(sensitivity_Jy2_sr)
     # sensitivity = 1.2  # 13.5 Planck Jy/sr  # 1.2 CCAT-Prime => previous
-    ell = np.linspace(100, 50000, 200)
+    # ell = np.linspace(100, 50000, 200)
+    # ell = np.linspace(100, 50000, 400)
+    ell = np.logspace(2, np.log10(5e4), num=400)
 elif cib_exp == 'Planck':
     # ell = np.linspace(50, 3000, 15)
     nu0 = np.array([100., 143., 217., 353., 545., 857.])  # , 1000., 1500., 2000., 2500., 3000.])
@@ -112,7 +114,7 @@ Planck = {'name': 'Planck_only',
 """
 
 custom = {'name': cib_exp,
-          'do_cibmean': 1,
+          'do_cibmean': 0,
           'cc': cc,
           'fc': fc,
           'snuaddr': 'data_files/filtered_snu_planck.fits',
@@ -361,6 +363,202 @@ def plot_cross(nu1, crossinstance, ellinput):
 nu1 = 5
 plot_cross(nu1, instcross, exp['ell'])
 # """
+
+"""
+def plot_all(nu1, crossinstance, galinstance, cibinstance, ellinput):
+    instd = crossinstance
+    cl1hd = instd.cibvelcross_cell_1h()
+    cl2hd = instd.cibvelcross_cell_2h()
+    cl_crosstotd = cl1hd+cl2hd
+
+    instg = galinstance
+    cl1hv = instg.cl1h_vel()
+    cl2hv = instg.cl2h_vel()
+    cl_crosstotv = cl1hv+cl2hv
+
+    cl1hg = instg.cl1h_gal()
+    cl2hg = instg.cl2h_gal()
+    clshotg = instg.clshot_gal()
+    cl_crosstotg = cl1hg+cl2hg+clshotg
+
+    instc = cibinstance
+    cl1hc = instc.onehalo_int()
+    cl2hc = instc.twohalo_int()
+    clshotc = instc.shot_cib()
+    # clwhite = driver.whitenoise(nu1)
+    cl_crosstotc = cl1hc+cl2hc+clshotc  # +clwhite
+
+    cl1hdb = instc.onehalo_int_Doppler()
+    cl2hdb = instc.twohalo_int_Doppler()
+    cldbtot = cl1hdb+cl2hdb
+    
+    # lines = ['-', '--', '-.']
+    # cols = ['r', 'b', 'g']
+
+    fig, (ax1, ax2, ax3, ax4, ax5) = plt.subplots(5, sharex=True, figsize=(10, 18))
+    # for i in range(3):
+        # ax.plot(ellinput, cl1h[nu1, :], c=cols[i], ls=lines[i], label='1h-cross')
+        # ax.plot(ellinput, cl2h[nu1, :], 'b--', label='2h-cross')
+        # ax.plot(ellinput, clshot[nu1, :], 'g--', label='shot')
+    # cibfac = 1e-4
+    # galvelfac = 1e4
+    # ax1.plot(ellinput, cibfac*cl_crosstotc[nu1, nu1, :], 'r', label=r'$10^{-4} \times C_\ell^{\Delta \rm{I} \Delta \rm{I}}$')
+
+    ax1.plot(ellinput, cl2hc[nu1, nu1, :], 'b--', label='2-halo')  #, r'$C_\ell^{\Delta \rm{I} \Delta \rm{I}}$')
+    ax1.plot(ellinput, cl1hc[nu1, nu1, :], 'b-.', label='1-halo')
+    # ax1.plot(ellinput, clwhite, 'b:', label='Detector noise')# , r'$C_\ell^{\Delta \rm{I^D} q_\gamma}$')
+    ax1.plot(ellinput, cl_crosstotc[nu1, nu1, :], 'b-', label='total')  # , r'$C_\ell^{q_\gamma q_\gamma}$')
+    ax1.set_ylim(ymin=1e2, ymax=1e6)
+    ax1.set_ylabel(r'$C_\ell^{\Delta I \Delta I}\: [(\rm{Jy/sr})^{2}]$', fontsize=16)
+    ax1.set_xscale('log')
+    ax1.set_yscale('log')
+    ax1.legend(loc='upper right', prop={'size': 18}, frameon=False, ncol=3, labelspacing=0.2)
+    ax1.tick_params(axis='both', labelsize=18)
+
+    ax2.plot(ellinput, cl2hd[nu1, :], 'b--') # , label=r'$C_\ell^{\Delta \rm{I^D} q_\gamma}$')
+    ax2.plot(ellinput, cl1hd[nu1, :], 'b-.')
+    ax2.plot(ellinput, cl_crosstotd[nu1, :], 'b-')
+    ax2.set_ylim(ymin=1e-9)
+    ax2.set_ylabel(r'$C_\ell^{\Delta I^{\rm DB} q_\gamma}\: [\rm{Jy}\: \rm{sr}^{-1}]$', fontsize=16)
+    ax2.set_xscale('log')
+    ax2.set_yscale('log')
+    ax2.tick_params(axis='both', labelsize=18)
+
+    ax3.plot(ellinput, cl2hv, 'b--') # , label=r'$C_\ell^{\Delta \rm{I^D} q_\gamma}$')
+    ax3.plot(ellinput, cl1hv, 'b-.')
+    ax3.plot(ellinput, cl_crosstotv, 'b-')
+    ax3.set_ylim(ymin=1e-17, ymax=1.5e-12)
+    ax3.set_ylabel(r'$C_\ell^{q_\gamma q_\gamma}$', fontsize=16)
+    ax3.set_xscale('log')
+    ax3.set_yscale('log')
+    ax3.tick_params(axis='both', labelsize=18)
+
+    ax4.plot(ellinput, cl1hdb[nu1, nu1, :], 'b--') # , label=r'$C_\ell^{\Delta \rm{I^D} q_\gamma}$')
+    ax4.plot(ellinput, cl2hdb[nu1, nu1, :], 'b-.')
+    ax4.plot(ellinput, cldbtot[nu1, nu1, :], 'b-')
+    ax4.set_ylim(ymin=1e-4, ymax=1)
+    ax4.set_xlim(xmin=1e2)
+    ax4.set_ylabel(r'$C_\ell^{\Delta I^{\rm DB} \Delta I^{\rm DB}}\: [(\rm{Jy/sr})^{2}]$', fontsize=16)
+    ax4.set_xscale('log')
+    ax4.set_yscale('log')
+    ax4.tick_params(axis='both', labelsize=18)
+
+    ax5.plot(ellinput, cl2hg, 'b--') # , label=r'$C_\ell^{\Delta \rm{I^D} q_\gamma}$')
+    ax5.plot(ellinput, cl1hg, 'b-.')
+    ax5.plot(ellinput, cl_crosstotg, 'b-')
+    ax5.set_ylim(ymin=1e-10)
+    ax5.set_xlim(xmin=1e2)
+    ax5.set_ylabel(r'$C_\ell^{\delta_g \delta_g}$', fontsize=16)
+    ax5.set_xscale('log')
+    ax5.set_yscale('log')
+    ax5.tick_params(axis='both', labelsize=18)
+
+    # ax.legend(loc='upper right', prop={'size': 14}, frameon=False)
+    # ax.set_ylabel(r'$C_\ell\: [Jy\: {sr}^{-1}]$', fontsize=14)
+    ax5.set_xlabel('Multipole' r'$\;\ell$', fontsize=18)
+    ax1.set_title(r'CCAT-Prime 850 GHz & DESI-ELG', fontsize=18)
+    plt.savefig('output/Figures/allpowerspectra_CCAT850_DESIELG.pdf', bbox_inches="tight")
+
+# [100., 143., 217., 353., 545., 857.] => Planck
+# [220., 280., 350., 410., 850.] => CCAT Prime
+nu1 = 4
+# plot_all(nu1, instcross, instgal, instcib, exp['ell'])
+# """
+
+#"""
+
+def plot_cibxvel(nu1, crossinstance, galinstance, cibinstance, lmin, lmax, deltal, fsky):
+    instd = crossinstance
+    cl1hd = instd.cibvelcross_cell_1h()
+    cl2hd = instd.cibvelcross_cell_2h()
+    cl_crosstotd = cl1hd+cl2hd
+    # fclcrossd = UnivariateSpline(exp['ell'], cl_crosstotd[nu1, :], k=1, s=0)
+    fclcross1hd = interp1d(exp['ell'], cl1hd[nu1, :], kind='linear', bounds_error=False, fill_value="extrapolate")
+    fclcross2hd = interp1d(exp['ell'], cl2hd[nu1, :], kind='linear', bounds_error=False, fill_value="extrapolate")
+    fclcrossd = interp1d(exp['ell'], cl_crosstotd[nu1, :], kind='linear', bounds_error=False, fill_value="extrapolate")
+
+    clwhite = driver.whitenoise(nu1)
+    clcib = cibinstance.cl_cibtot()[nu1, nu1, :]
+    clcibtot = clcib+clwhite
+    # fclcibtot = UnivariateSpline(exp['ell'], clcibtot, k=1, s=0)
+    fclcibtot = interp1d(exp['ell'], clcibtot, kind='linear', bounds_error=False, fill_value="extrapolate")
+
+    clvel = galinstance.cl_veltot()
+    # fclvel = UnivariateSpline(exp['ell'], clvel, k=1, s=0)
+    fclvel = interp1d(exp['ell'], clvel, kind='linear', bounds_error=False, fill_value="extrapolate")
+
+    numnoise = cl_crosstotd[nu1, :]**2 + clcibtot*clvel
+    denmnoise = (2.*exp['ell']+1)*fsky
+    noise = np.sqrt(numnoise/denmnoise)
+    fnoise = interp1d(exp['ell'], noise, kind='linear', bounds_error=False, fill_value="extrapolate")
+
+    # deltal = 100.
+    ellplt = np.linspace(lmin, lmax, int(lmax-lmin+1))
+    ell2 = np.arange(lmin, lmax, deltal)
+    nbin = len(ell2)
+    cibtbin = np.zeros(nbin)
+    velbin = np.zeros(nbin)
+    crossdbin = np.zeros(nbin)
+    noisebin2 = np.zeros(nbin)
+    lcen = np.zeros(nbin)
+    for i in range(nbin):
+        l1 = ell2[i]
+        if i == int(nbin-1):
+            l2 = lmax
+        else:
+            l2 = ell2[i+1]
+        lcen[i] = (l1+l2)/2.
+        el = np.linspace(l1, l2, int(l2-l1+1))
+        # deltal = l2-l1
+        cibtbin[i] = np.sum(fclcibtot(el))/deltal
+        velbin[i] = np.sum(fclvel(el))/deltal
+        crossdbin[i] = np.sum(fclcrossd(el))/deltal
+        noisebin2[i] = np.sum(fnoise(el))/deltal
+    # print (noisebin)
+    # print (fclcrossd(lcen))
+    # lines = ['-', '--', '-.']
+    # cols = ['r', 'b', 'g']
+    num = crossdbin**2 + cibtbin*velbin
+    denom = (2.*lcen+1)*deltal*fsky
+    noisebin = np.sqrt(num/denom)
+
+    # print (noisebin)
+    # print (noisebin2)
+
+    f, ax = plt.subplots(figsize=(8, 5))
+
+    # ax.plot(ellinput, cl2hd[nu1, :], 'k--', label=r'2-halo')
+    # ax.plot(ellinput, cl1hd[nu1, :], 'k-.', label=r'1-halo')
+    # ax.plot(exp['ell'], cl_crosstotd[nu1, :], 'k-.')
+    ax.plot(ellplt, fclcrossd(ellplt), c='tab:orange', ls='-', lw=3, label=r'total')
+    ax.plot(ellplt, fclcross1hd(ellplt), c='tab:orange', ls='-.', lw=3, label=r'1-halo')
+    ax.plot(ellplt, fclcross2hd(ellplt), c='tab:orange', ls='--', lw=3, label=r'2-halo')
+    yerrorbin = noisebin/2
+    ax.errorbar(lcen, fclcrossd(lcen), yerr=yerrorbin, fmt='o', c='b', markersize='3', capsize=3, capthick=1) # fmt='o', ':'
+    # yerror = fnoise(ellplt)/2.
+    # ax.fill_between(ellplt, fclcrossd(ellplt)-yerror, fclcrossd(ellplt)+yerror, alpha=0.7)
+
+    ax.set_xscale('log')
+    ax.set_yscale('log')
+    ax.set_ylim(ymin=5e-9, ymax=2e-7)
+    ax.set_xlim(xmin=1e2)
+    ax.legend(loc='upper right', prop={'size': 24}, frameon=False)
+    ax.set_ylabel(r'$C_\ell^{\Delta I^{\rm DB} q_\gamma}\: [\rm{Jy}\: \rm{sr}^{-1}]$', fontsize=24)
+    ax.set_xlabel('Multipole' r'$\;\ell$', fontsize=24)
+    ax.set_title(r'CCAT-Prime 850 GHz x DESI-ELG', fontsize=24)
+    ax.tick_params(axis='both', labelsize=24)
+    # plt.savefig('output/Figures/DBCIBcrossmomentum_witherrorbars_CCAT850_DESIELG_1h2h.pdf', bbox_inches="tight")
+
+# [100., 143., 217., 353., 545., 857.] => Planck
+# [220., 280., 350., 410., 850.] => CCAT Prime
+nu1 = 4
+lmin = 100
+lmax = 5e4
+fsky = 0.4
+deltal = 1200
+plot_cibxvel(nu1, instcross, instgal, instcib, lmin, lmax, deltal, fsky)
+# """
+
 # zs = np.array([0.05, 1.5, 3., 5.])
 # nu0_z = instcross.nu0_z(zs)
 """
@@ -385,7 +583,7 @@ print ("delta I in muKCMB for %s GHz = %s" % (nu0, deltaI_muKCMB))
 print ("delta I in Jy for %s GHz = %s" % (nu0, deltaI_Jy))
 # """
 
-# """
+"""
 # write the code such that it calculates SNR for all frequencies? Maybe
 # make it loop over all the frequencies?
 # CCAT: nu0 = np.array([220., 280., 350., 410., 850.])  # in GHz
@@ -439,7 +637,7 @@ def plot_alpha_freq_z(exp, mass, zs):
     # ax.set_xscale('log')
     # ax.set_yscale('log', nonposy='mask')
     ax.set_xlabel(r'$\nu_{\rm obs}$ [GHz]', fontsize=24)
-    ax.set_ylabel(r'$\alpha$', fontsize=24)
+    ax.set_ylabel(r'$\alpha_{\nu_0}$', fontsize=24)
     # ax.set_ylim((1.0))  # , 4.e-6))
     ax.set_xlim((50.))  # , 4.e3))
     ax.tick_params(axis='both', labelsize=20)

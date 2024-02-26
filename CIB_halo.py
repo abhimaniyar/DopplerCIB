@@ -18,7 +18,7 @@ class Cib_halo:
         self.ell = self.dv.ell
         self.snu_unfilt = self.dv.unfiltered_snu(self.nu0, self.z)
         self.snu_filt = self.dv.snufilt(self.z)
-        self.snu = self.snu_filt  # self.snu_unfilt  self.snu_filt
+        self.snu = self.snu_unfilt  # self.snu_unfilt  self.snu_filt
         # if you want to use unfiltered SEDs, use snu_unfilt. snu_filt is for
         # Planck HFI frequency channels.
 
@@ -96,9 +96,10 @@ class Cib_halo:
 
     def subhmf(self, mhalo, ms):
         # subhalo mass function from (https://arxiv.org/pdf/0909.1325.pdf)
-        return 0.13*(ms/mhalo)**(-0.7)*np.exp(-9.9*(ms/mhalo)**2.5)*np.log(10)
-    # np.log(10) added in the end as in the integration we are integrating with
-    # respect to dlogm to the base 10.
+        # update: arxiv version, it turns out, has not been updated and has
+        # wrong coefficient to multiply in front. We had 0.13*log(10)
+        # but instead, we should have 0.30*log(10)
+        return 0.3*(ms/mhalo)**(-0.7)*np.exp(-9.9*(ms/mhalo)**2.5)*np.log(10)
 
     def msub(self, mhalo):
         """
@@ -107,8 +108,8 @@ class Cib_halo:
         """
         log10msub_min = 5
         if np.log10(mhalo) <= log10msub_min:
-            raise ValueError, "halo mass %d should be greater than subhalo mass \
-%d." % (np.log10(mhalo), log10msub_min)
+            raise ValueError("halo mass %d should be greater than subhalo mass \
+%d." % (np.log10(mhalo), log10msub_min))
         else:
             logmh = np.log10(mhalo)
             logmsub = np.arange(log10msub_min, logmh, 0.1)
