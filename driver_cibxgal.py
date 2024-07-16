@@ -16,7 +16,7 @@ t0 = time.time()
 # ################## CIB term only #######################
 
 cib_exp = 'Planck'  # CCAT  # Planck
-gal_exp = 'CMASS'  # CMASS  # DESI_ELG  # DESI_LRG  # ExtDESI_ELG
+gal_exp = 'DESI_ELG'  # CMASS  # DESI_ELG  # DESI_LRG  # ExtDESI_ELG
 
 # specs for CCAT-Prime from https://cornell.app.box.com/s/iag34277e8j0eywu8qmc0a8x3z4ko1i3/file/801743165445
 # CCAT-prime Collaboration, J.Low Temp.Phys., 199, 1089 (2020), Table 1.
@@ -229,14 +229,14 @@ used to calculate the cross shot nise between CIB and galaxies.
 Set r_l = 0 if you do not want cross-shot noise or some other value if you
 want the shot noise to be not 100% correlated.
 """
-r_l = 1.0
+r_l = 0.5
 # instcross = CIBxgal(instgal, instcib)
 instcross = CIBxgal(driver, driver_uni, gal_exp, r_l)
 
 # cl_crosstot = instcross.cibgalcross_cell_tot()
 
 # """
-def plot_cross(nu1, crossinstance, ellinput):
+def plot_cross(crossinstance, ellinput):
     inst = crossinstance
     cl1h = inst.cibgalcross_cell_1h()
     cl2h = inst.cibgalcross_cell_2h()
@@ -244,26 +244,51 @@ def plot_cross(nu1, crossinstance, ellinput):
     # clshot = np.repeat(shot, len(ellinput))
     cl_crosstot = cl1h+cl2h+clshot
 
-    f, ax = plt.subplots(figsize=(10, 10))
-    ax.plot(ellinput, cl1h[nu1, :], 'r--', label='1h-cross')
-    ax.plot(ellinput, cl2h[nu1, :], 'b--', label='2h-cross')
-    ax.plot(ellinput, clshot[nu1, :], 'g--', label='shot')
-    ax.plot(ellinput, cl_crosstot[nu1, :], 'k--', label='tot-cross')
+    for nu1 in np.arange(3,6):
+        f, ax = plt.subplots(figsize=(10, 10))
+        ax.plot(ellinput, cl1h[nu1, :], 'r--', label='1h-cross')
+        ax.plot(ellinput, cl2h[nu1, :], 'b--', label='2h-cross')
+        ax.plot(ellinput, clshot[nu1, :], 'g--', label='shot')
+        ax.plot(ellinput, cl_crosstot[nu1, :], 'k--', label='tot-cross')
 
-    ax.set_xscale('log')
-    ax.set_yscale('log')
-    ax.legend(loc='upper right', prop={'size': 18}, frameon=False)
-    ax.set_ylabel(r'$C^{\rm CIB x gal}_\ell\: [Jy\: {sr}^{-1}]$', fontsize=20)
-    ax.set_xlabel('Multipole' r'$\;\ell$', fontsize=20)
-    ax.set_title('%s CIB %s GHz x %s galaxy' % (exp['name'], exp['nu_string'][nu1], gal_exp), fontsize=20)
-    plt.show()
+        ax.set_xscale('log')
+        ax.set_yscale('log')
+        ax.legend(loc='upper right', prop={'size': 18}, frameon=False)
+        ax.set_ylabel(r'$C^{\rm CIB x gal}_\ell\: [Jy\: {sr}^{-1}]$', fontsize=20)
+        ax.set_xlabel('Multipole' r'$\;\ell$', fontsize=20)
+        ax.set_title('%s CIB %s GHz x %s galaxy' % (exp['name'], exp['nu_string'][nu1], gal_exp), fontsize=20)
+        #plt.show()
+        # plt.savefig('output/cl_cibxgal_%s_%s_%s.pdf'%(exp['name'], exp['nu_string'][nu1], gal_exp))
+    
 
 
 # CCAT: nu0 = np.array([220., 280., 350., 410., 850.])  # in GHz
 # Planck: nu0 = np.array([100., 143., 217., 353., 545., 857.])
-nu1 = 3
-plot_cross(nu1, instcross, exp['ell'])
+# nu1 = 3
+plot_cross(instcross, exp['ell'])
 # """
+
+
+def saveCls(crossinstance, ellinput):
+    inst = crossinstance
+    cl1h = inst.cibgalcross_cell_1h()
+    cl2h = inst.cibgalcross_cell_2h()
+    clshot = inst.cibgalcross_cell_shot()
+    # clshot = np.repeat(shot, len(ellinput))
+    cl_crosstot = cl1h+cl2h+clshot
+
+    for nu1 in np.arange(3,6):
+        data = np.zeros((len(ellinput), 5))
+        data[:, 0] = ellinput
+        data[:, 1] = cl1h[nu1, :]
+        data[:, 2] = cl2h[nu1, :]
+        data[:, 3] = clshot[nu1, :]
+        data[:, 4] = cl1h[nu1, :] + cl2h[nu1, :] + clshot[nu1, :]
+        np.savetxt('output/%sCIB%sGHzx%sgalaxy_rl%s.txt' % (exp['name'], exp['nu_string'][nu1], gal_exp, r_l), data)
+
+
+# saveCls(instcross, exp['ell'])
+
 
 """
 # CCAT: nu0 = np.array([220., 280., 350., 410., 850.])  # in GHz

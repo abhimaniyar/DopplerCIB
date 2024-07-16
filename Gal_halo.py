@@ -34,19 +34,27 @@ class ProfHODMore15:
         galaxies detected as same as DESI ELG i.e. 30 times more than CMASS,
         but spread on abroader redshift range i.e. 0.6 < z < 3.2.
         """
+        self.sLog10m = np.sqrt(0.49)
+        self.alpha_ = 1.09
+        self.m1 = 10.**(14.43)
         if self.gal_exp == 'CMASS':
             self.log10mMin = 13.42
         elif self.gal_exp == 'DESI_LRG':
             self.log10mMin = 12.5
         elif self.gal_exp == 'DESI_ELG':
             self.log10mMin = 12.1
+            self.sLog10m = 0.30
+            self.Ac=0.1
+            self.log10mc=11.64
+            self.gamma=5.47
+            self.As=0.41
+            self.m0=10.**11.20
+            self.alpha_=0.81
+            self.m1=10.**13.84
         elif self.gal_exp == 'ExtDESI_ELG':
             self.log10mMin = 12.7
-        self.sLog10m = np.sqrt(0.49)
         self.kappa = 1.10
         self.mMinHod = 10.**(13.42)
-        self.m1 = 10.**(14.43)
-        self.alpha_ = 1.09
         self.pOff = 0.357
         self.rOff = 2.3
 
@@ -116,23 +124,36 @@ class ProfHODMore15:
         """number of central galaxies per halo, between 0 and 1
         """
         # m = self.mh
-        result = np.log10(m) - self.log10mMin
-        result /= self.sLog10m
-        result = 0.5*(1.+special.erf(result))
-        result *= self.fInc(m)
+        if self.gal_exp == 'DESI_ELG':
+            result = np.log10(m) - self.log10mc
+            result /= self.sLog10m
+            result = self.Ac/np.sqrt(2*np.pi)/self.sLog10m*np.exp(-0.5*result**2)*(1.+special.erf(self.gamma/np.sqrt(2.)*result))
+        else:
+            result = np.log10(m) - self.log10mMin
+            result /= self.sLog10m
+            result = 0.5*(1.+special.erf(result))
+            result *= self.fInc(m)
         return result
 
     def Nsat(self, m):
         """number of satellite galaxies per halo
         """
         # m = self.mh
-        result = (m - self.kappa * self.mMinHod)
-        if result > 0.:
-            result /= self.m1
-            result **= self.alpha_
-            result *= self.Ncen(m)
+        if self.gal_exp == 'DESI_ELG':
+            result = m-self.m0
+            if result > 0.:
+                result /= self.m1
+                result = result**self.alpha_
+            else:
+                result = 0.
         else:
-            result = 0.
+            result = (m - self.kappa * self.mMinHod)
+            if result > 0.:
+                result /= self.m1
+                result **= self.alpha_
+                result *= self.Ncen(m)
+            else:
+                result = 0.
         return result
 
     def nbargal(self):

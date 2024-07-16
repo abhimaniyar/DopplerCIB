@@ -1,9 +1,16 @@
 from headers_constants import *
 from scipy.interpolate import InterpolatedUnivariateSpline as _spline
+from colossus.cosmology import cosmology as cosmo_colossus
+from colossus.lss import mass_function
+from colossus.lss import bias
 
 
 # code to calculate the halo mass function, halo bias, and the Fourier
 # transform of the NFW profile
+
+cosmo_colossus.setCosmology('planck18')
+params = cosmo_colossus.getCurrent()
+h = params.H0/100.
 
 
 class h_u_b:
@@ -201,15 +208,24 @@ class h_u_b:
         b = b_0 * (1+z)**alpha
         return A * ((s/b)**-a + 1)*np.exp(-c_0/s**2)
 
-    def dn_dm(self):
-        rad = self.mass_to_radius()
-        return self.fsigma(rad) * self.mean_density0() * np.abs(self.dlns_dlnm(rad)) / self.mh**2
+    #def dn_dm(self):
+    #    rad = self.mass_to_radius()
+    #    return self.fsigma(rad) * self.mean_density0() * np.abs(self.dlns_dlnm(rad)) / self.mh**2
+
+    #def dn_dlnm(self):
+    #    return self.mh * self.dn_dm()  # *np.log(10) 
+
+    #def dn_dlogm(self):
+    #    return self.mh * self.dn_dm() * np.log(10)
 
     def dn_dlnm(self):
-        return self.mh * self.dn_dm()  # *np.log(10)
+        return mass_function.massFunction(self.mh*h,self.z,q_in='M',q_out='dndlnM',model='tinker08',mdef='200m')*h**3
+
+    def dn_dm(self):
+        return self.dn_dlnm()/self.mh
 
     def dn_dlogm(self):
-        return self.mh * self.dn_dm() * np.log(10)
+        return self.dn_dlnm() * np.log(10)
 
 # ################ NFW profile calculation #######################
 
@@ -255,7 +271,7 @@ class h_u_b:
         slope of the ps at lower k. But we have checked that the results
         do not vary significantly with the bump.
         """
-        grad = np.zeros(self.power.shape, np.float)
+        grad = np.zeros(self.power.shape, float)
         grad[0:-1] = np.diff(np.log(self.power)) / np.diff(np.log(self.kk))
         grad[-1] = (np.log(self.power[-1]) - np.log(self.power[-2]))/(np.log(self.kk[-1]) - np.log(self.kk[-2]))
         # grad_smoothed = savgol_filter(grad, 51, 2)
@@ -344,15 +360,18 @@ class h_u_b:
 # ######################## halo bias b(m, z) ###########################
 # Tinker at al. 2010
 
+    #def b_nu(self):
+    #    delta = self.delta_halo()
+    #    y = np.log10(delta)
+    #    A = 1.0 + 0.24*y*np.exp(-(4./y)**4)
+    #    aa = 0.44*y - 0.88
+    #    B = 0.183
+    #    b = 1.5
+    #    C = 0.019 + 0.107*y + 0.19*np.exp(-(4./y)**4)
+    #    c = 2.4
+    #    nuu = self.nu()
+    #    dc = 1.686  # neglecting the redshift evolution
+    #    return 1 - (A*nuu**aa/(nuu**aa + dc**aa)) + B*nuu**b + C*nuu**c
+
     def b_nu(self):
-        delta = self.delta_halo()
-        y = np.log10(delta)
-        A = 1.0 + 0.24*y*np.exp(-(4./y)**4)
-        aa = 0.44*y - 0.88
-        B = 0.183
-        b = 1.5
-        C = 0.019 + 0.107*y + 0.19*np.exp(-(4./y)**4)
-        c = 2.4
-        nuu = self.nu()
-        dc = 1.686  # neglecting the redshift evolution
-        return 1 - (A*nuu**aa/(nuu**aa + dc**aa)) + B*nuu**b + C*nuu**c
+        return bias.haloBiasFromNu(self.nu(),self.z,mdef='200m')
